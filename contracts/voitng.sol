@@ -40,5 +40,37 @@ contract Ballot{
         voters[voter].weight = 1;
     }
 
-    
+    function delegate (address to) external {
+        Voter storage sender = voters[msg.sender];
+        require(sender.weight != 0, "You have no right to vote");
+        require(!sender.voted, "You have already voted");
+        require(to != msg.sender, "Self-delegation not allowed");
+
+        while(voters[to].delegate != address(0)) {
+            to = voters[to].delegate;
+
+            require(to != msg.sender, "Found loop in delegation");
+        }
+
+        Voter storage delegate_ = voters[to];
+        require(delegate_.weight >= 1);
+
+        sender.voted = true;
+        sender.delegate = to;
+
+        if(delegate_.voted) {
+            proposals[delegate_.vote].voteCount += sender.weight;
+        } else {
+            delegate_.weight += sender.weight;
+        }
+    }
+
+    function vote(uint proposal) external {
+        Voter storage sender = voters[msg.sender];
+        require(sender.weight != 0, "Has no right to vote");
+        require(!sender.voted, "Already voted");
+        sender.voted = true;
+        sender.vote = proposal;
+        proposals[proposal].voteCount += sender.weight;
+    }
 }
